@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v4 # v4.0.0
         with:
           name: server-build-artifact
-          path: server/dist/tmattermost-team-linux-amd64.tar.gz
+          path: server/dist/mattermost-team-linux-amd64.tar.gz
 
   build-docker-image:
     runs-on: ubuntu-22.04
@@ -62,7 +62,7 @@ jobs:
           path: server/build
       - name: Build and Push Docker Image
         env:
-          MM_PACKAGE: mattermost-team-linux-amd64.tar.gz
+          MM_PACKAGE: server/build/mattermost-team-linux-amd64.tar.gz
           TAG: ${{ github.event.workflow_run.head_sha }}
         run: |
           ls -R ..
