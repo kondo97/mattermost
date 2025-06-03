@@ -47,8 +47,6 @@ jobs:
   build-docker-image:
     runs-on: ubuntu-22.04
     needs: build-artifacts
-    outputs:
-      TAG: ${{ steps.set_tag.outputs.TAG }}
     steps:
       - name: Docker Login
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
@@ -59,10 +57,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: server-build-artifact
-          path: server/build
+          path: server/dist
       - name: Build and Push Docker Image
         env:
-          MM_PACKAGE: server/build/mattermost-team-linux-amd64.tar.gz
+          MM_PACKAGE: server/dist/mattermost-team-linux-amd64.tar.gz
           TAG: ${{ github.sha }}
         run: |
           cd server/build
