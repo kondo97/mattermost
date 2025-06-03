@@ -59,12 +59,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: server-build-artifact
-          path: server/dist
+          path: server/build
       - name: Build and Push Docker Image
         env:
           TAG: ${{ github.sha }}
         run: |
           cd server/build
           ls -l
-          ls -l ../dist/mattermost-team-linux-amd64.tar.gz
-          docker buildx build --no-cache --platform linux/amd64 --push --build-arg MM_PACKAGE=../dist/mattermost-team-linux-amd64.tar.gz -t kondo97/mattermost:${TAG} .
+          docker buildx build --no-cache --platform linux/amd64 --push --build-arg MM_PACKAGE=mattermost-team-linux-amd64.tar.gz -t kondo97/mattermost:${TAG} .
