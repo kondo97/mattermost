@@ -65,6 +65,6 @@ jobs:
           MM_PACKAGE: server/build/mattermost-team-linux-amd64.tar.gz
           TAG: ${{ github.sha }}
         run: |
-          ls -R ..
           cd server/build
+          ls -l
           docker buildx build --no-cache --platform linux/amd64 --push --build-arg MM_PACKAGE=${MM_PACKAGE} -t kondo97/mattermost:${TAG} .
