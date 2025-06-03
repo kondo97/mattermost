@@ -63,7 +63,7 @@ jobs:
       - name: Build and Push Docker Image
         env:
           MM_PACKAGE: server/build/mattermost-team-linux-amd64.tar.gz
-          TAG: ${{ github.event.workflow_run.head_sha }}
+          TAG: ${{ github.sha }}
         run: |
           ls -R ..
           cd server/build
