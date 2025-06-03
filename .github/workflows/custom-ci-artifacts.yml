@@ -67,4 +67,4 @@ jobs:
         run: |
           ls -R ..
           cd server/build
-          docker buildx --no-cache --platform linux/amd64 --push --build-arg MM_PACKAGE=${MM_PACKAGE} -t kondo97/mattermost:${TAG} .
+          docker buildx build --no-cache --platform linux/amd64 --push --build-arg MM_PACKAGE=${MM_PACKAGE} -t kondo97/mattermost:${TAG} .
