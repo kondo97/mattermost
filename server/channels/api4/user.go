@@ -1910,6 +1910,7 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 	password := props["password"]
 	mfaToken := props["token"]
 	deviceId := props["device_id"]
+	voipDeviceId := props["voip_device_id"]
 	ldapOnly := props["ldap_only"] == "true"
 
 	if *c.App.Config().ExperimentalSettings.ClientSideCertEnable {
@@ -1965,7 +1966,7 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 	c.LogAuditWithUserId(user.Id, "authenticated")
 
 	isMobileDevice := utils.IsMobileRequest(r)
-	session, err := c.App.DoLogin(c.AppContext, w, r, user, deviceId, isMobileDevice, false, false)
+	session, err := c.App.DoLogin(c.AppContext, w, r, user, deviceId, voipDeviceId, isMobileDevice, false, false)
 	if err != nil {
 		c.Err = err
 		return
