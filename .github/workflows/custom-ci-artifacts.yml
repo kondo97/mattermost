@@ -37,8 +37,13 @@ jobs:
           make config-reset
           make build-cmd BUILD_NUMBER='${GITHUB_HEAD_REF}-${GITHUB_RUN_ID}'
           make package BUILD_NUMBER='${GITHUB_HEAD_REF}-${GITHUB_RUN_ID}'
-          ls -l dist
-          cp dist/mattermost-team-linux-amd64.tar.gz mattermost-linux-amd64.tar.gz
+          ls dist
+      - name: Upload Mattermost Package
+        uses: actions/upload-artifact@v4 # v4.0.0
+        with:
+          name: server-build-artifact
+          path: server/dist/tmattermost-team-linux-amd64.tar.gz
+
   build-docker-image:
     runs-on: ubuntu-22.04
     needs: build-artifacts
@@ -50,10 +55,16 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_DEV_USERNAME }}
           password: ${{ secrets.DOCKERHUB_DEV_TOKEN }}
+      - name: Download Mattermost Package
+        uses: actions/download-artifact@v4
+        with:
+          name: server-build-artifact
+          path: server/build
       - name: Build and Push Docker Image
         env:
-          MM_PACKAGE: server/dist/mattermost-team-linux-amd64.tar.gz
+          MM_PACKAGE: mattermost-team-linux-amd64.tar.gz
           TAG: ${{ github.event.workflow_run.head_sha }}
         run: |
+          ls -R ..
           cd server/build
           docker buildx --no-cache --platform linux/amd64 --push --build-arg MM_PACKAGE=${MM_PACKAGE} -t kondo97/mattermost:${TAG} .
