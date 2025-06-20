@@ -11,6 +11,7 @@ const (
 	PushNotifyApple              = "apple"
 	PushNotifyAndroid            = "android"
 	PushNotifyAppleReactNative   = "apple_rn"
+	PushNotifyAppleVoip					= "apple_voip"
 	PushNotifyAndroidReactNative = "android_rn"
 
 	PushTypeMessage     = "message"
