@@ -214,6 +214,11 @@ var searchPostStoreTests = []searchTest{
 		Tags: []string{EngineAll},
 	},
 	{
+		Name: "Should search hyphenated usernames precisely without false matches",
+		Fn:   testSearchHyphenatedUsernames,
+		Tags: []string{EngineBleve},
+	},
+	{
 		Name: "Should be able to search in deleted/archived channels",
 		Fn:   testSearchInDeletedOrArchivedChannels,
 		Tags: []string{EngineMySQL, EnginePostgres},
@@ -1643,6 +1648,70 @@ func testSearchShouldBeAbleToMatchByMentions(t *testing.T, th *SearchTestHelper)
 	th.checkPostInSearchResults(t, p2.Id, results.Posts)
 	th.checkPostInSearchResults(t, p3.Id, results.Posts)
 }
+
+func testSearchHyphenatedUsernames(t *testing.T, th *SearchTestHelper) {
+	// Create posts with different hyphenated usernames to test precise matching
+	p1, err := th.createPost(th.User.Id, th.ChannelBasic.Id, "Hello @user-123 how are you?", "", model.PostTypeDefault, 0, false)
+	require.NoError(t, err)
+	p2, err := th.createPost(th.User.Id, th.ChannelBasic.Id, "Hi @user-456 nice to meet you!", "", model.PostTypeDefault, 0, false)
+	require.NoError(t, err)
+	p3, err := th.createPost(th.User.Id, th.ChannelBasic.Id, "Hey @another-user-789 what's up?", "", model.PostTypeDefault, 0, false)
+	require.NoError(t, err)
+	p4, err := th.createPost(th.User.Id, th.ChannelBasic.Id, "Regular user mention without hyphens", "", model.PostTypeDefault, 0, false)
+	require.NoError(t, err)
+	defer th.deleteUserPosts(th.User.Id)
+
+	t.Run("Should only return posts mentioning @user-123, not @user-456", func(t *testing.T) {
+		params := &model.SearchParams{Terms: "@user-123"}
+		results, err := th.Store.Post().SearchPostsForUser(th.Context, []*model.SearchParams{params}, th.User.Id, th.Team.Id, 0, 20)
+		require.NoError(t, err)
+
+		require.Len(t, results.Posts, 1)
+		th.checkPostInSearchResults(t, p1.Id, results.Posts)
+		// Check that other posts are NOT in results
+		require.NotContains(t, results.Posts, p2.Id)
+		require.NotContains(t, results.Posts, p3.Id)
+		require.NotContains(t, results.Posts, p4.Id)
+	})
+
+	t.Run("Should only return posts mentioning @user-456, not @user-123", func(t *testing.T) {
+		params := &model.SearchParams{Terms: "@user-456"}
+		results, err := th.Store.Post().SearchPostsForUser(th.Context, []*model.SearchParams{params}, th.User.Id, th.Team.Id, 0, 20)
+		require.NoError(t, err)
+
+		require.Len(t, results.Posts, 1)
+		th.checkPostInSearchResults(t, p2.Id, results.Posts)
+		// Check that other posts are NOT in results
+		require.NotContains(t, results.Posts, p1.Id)
+		require.NotContains(t, results.Posts, p3.Id)
+		require.NotContains(t, results.Posts, p4.Id)
+	})
+
+	t.Run("Should handle longer hyphenated usernames correctly", func(t *testing.T) {
+		params := &model.SearchParams{Terms: "@another-user-789"}
+		results, err := th.Store.Post().SearchPostsForUser(th.Context, []*model.SearchParams{params}, th.User.Id, th.Team.Id, 0, 20)
+		require.NoError(t, err)
+
+		require.Len(t, results.Posts, 1)
+		th.checkPostInSearchResults(t, p3.Id, results.Posts)
+		// Check that other posts are NOT in results
+		require.NotContains(t, results.Posts, p1.Id)
+		require.NotContains(t, results.Posts, p2.Id)
+		require.NotContains(t, results.Posts, p4.Id)
+	})
+
+	t.Run("Should handle combined search with @mention and text", func(t *testing.T) {
+		params := &model.SearchParams{Terms: "@user-123 hello"}
+		results, err := th.Store.Post().SearchPostsForUser(th.Context, []*model.SearchParams{params}, th.User.Id, th.Team.Id, 0, 20)
+		require.NoError(t, err)
+
+		require.Len(t, results.Posts, 1)
+		th.checkPostInSearchResults(t, p1.Id, results.Posts)
+		// Check that other posts are NOT in results
+		require.NotContains(t, results.Posts, p2.Id)
+		require.NotContains(t, results.Posts, p3.Id)
+		require.NotContains(t, results.Posts, p4.Id)
+	})
 
 func testSearchInDeletedOrArchivedChannels(t *testing.T, th *SearchTestHelper) {
 	p1, err := th.createPost(th.User.Id, th.ChannelDeleted.Id, "message in deleted channel", "", model.PostTypeDefault, 0, false)

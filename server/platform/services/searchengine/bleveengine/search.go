@@ -167,6 +167,11 @@ func (b *BleveEngine) SearchPosts(channels model.ChannelList, searchParams []*mo
 						messageQ := bleve.NewWildcardQuery(term)
 						messageQ.SetField("Message")
 						termQueries = append(termQueries, messageQ)
+					} else if strings.HasPrefix(term, "@") && len(term) > 1 {
+						// Use exact term matching for @username mentions to handle hyphenated usernames
+						termQ := bleve.NewTermQuery(term)
+						termQ.SetField("Message")
+						termQueries = append(termQueries, termQ)
 					} else {
 						terms = append(terms, term)
 					}
@@ -181,10 +186,24 @@ func (b *BleveEngine) SearchPosts(channels model.ChannelList, searchParams []*mo
 			}
 
 			if params.ExcludedTerms != "" {
-				messageQ := bleve.NewMatchQuery(params.ExcludedTerms)
-				messageQ.SetField("Message")
-				messageQ.SetOperator(termOperator)
-				notTermQueries = append(notTermQueries, messageQ)
+				excludedTerms := []string{}
+				for term := range strings.SplitSeq(params.ExcludedTerms, " ") {
+					if strings.HasPrefix(term, "@") && len(term) > 1 {
+						// Use exact term matching for @username mentions to handle hyphenated usernames
+						termQ := bleve.NewTermQuery(term)
+						termQ.SetField("Message")
+						notTermQueries = append(notTermQueries, termQ)
+					} else {
+						excludedTerms = append(excludedTerms, term)
+					}
+				}
+
+				if len(excludedTerms) > 0 {
+					messageQ := bleve.NewMatchQuery(strings.Join(excludedTerms, " "))
+					messageQ.SetField("Message")
+					messageQ.SetOperator(termOperator)
+					notTermQueries = append(notTermQueries, messageQ)
+				}
 			}
 		}
 	}
