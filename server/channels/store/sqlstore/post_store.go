@@ -29,8 +29,6 @@ import (
 // Regex to get quoted strings
 var quotedStringsRegex = regexp.MustCompile(`("[^"]*")`)
 var wildCardRegex = regexp.MustCompile(`\*($| )`)
-// Regex to match @username patterns for exact mention matching
-var atUsernameRegex = regexp.MustCompile(`@[a-zA-Z0-9.\-_]+`)
 
 type SqlPostStore struct {
 	*SqlStore
@@ -2140,13 +2138,6 @@ func (s *SqlPostStore) search(teamId string, userId string, params *model.Search
 	terms := params.Terms
 	excludedTerms := params.ExcludedTerms
 
-	// Extract @username mentions for exact matching
-	atMentions, remainingTerms := extractAtMentions(terms)
-	if len(atMentions) > 0 {
-		// Use the remaining terms (without @mentions) for full-text search
-		terms = remainingTerms
-	}
-
 	searchType := "Message"
 	if params.IsHashtag {
 		searchType = "Hashtags"
@@ -2247,15 +2238,6 @@ func (s *SqlPostStore) search(teamId string, userId string, params *model.Search
 		}
 
 		baseQuery = baseQuery.Where(searchClause, termsClause)
-	}
-
-	// Add exact matching for @username mentions
-	if len(atMentions) > 0 {
-		for _, mention := range atMentions {
-			// Use LIKE with proper escaping for exact mention matching
-			// This handles usernames with hyphens and other special characters properly
-			baseQuery = baseQuery.Where("q2.Message LIKE ?", "%"+mention+"%")
-		}
 	}
 
 	inQuery := s.getSubQueryBuilder().Select("Id").
@@ -3485,19 +3467,4 @@ func (s *SqlPostStore) RefreshPostStats() error {
 	}
 
 	return nil
-}
-
-// extractAtMentions separates @username mentions from regular search terms
-// and returns them separately for exact matching
-func extractAtMentions(terms string) (mentions []string, remainingTerms string) {
-	// Find all @username patterns
-	mentions = atUsernameRegex.FindAllString(terms, -1)
-	
-	// Remove @username patterns from original terms to get remaining terms
-	remainingTerms = atUsernameRegex.ReplaceAllString(terms, "")
-	
-	// Clean up extra spaces
-	remainingTerms = strings.Join(strings.Fields(remainingTerms), " ")
-	
-	return mentions, remainingTerms
 }
